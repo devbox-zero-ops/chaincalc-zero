@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChainCalc Zero — DeFi Impermanent Loss, APR/APY &amp; Position Risk Calculator</title>
+  <meta name="description" content="Free 100% client-side DeFi &amp; crypto calculator: Uniswap V2/V3 Impermanent Loss, APR to APY optimal compounding frequency after gas fees, and Spot/Perp position sizing &amp; R:R risk calculator. No wallet connection required." />
+  <meta name="keywords" content="impermanent loss calculator, defi apy calculator, apr to apy converter, optimal compound frequency gas, crypto position size calculator, uniswap v3 il calculator" />
+  <meta property="og:title" content="ChainCalc Zero — DeFi IL, APY &amp; Position Risk Suite" />
+  <meta property="og:description" content="No wallet connect, zero tracking. Instant Impermanent Loss, Gas-Adjusted Compounding APY, and Position Sizing calculators." />
+  <meta property="og:type" content="website" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "ChainCalc Zero",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Any",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "description": "Privacy-first browser DeFi calculator for Impermanent Loss, Gas-Adjusted APY Compounding, and Trading Risk/Position Sizing."
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #101726;
+      --panel-2: #192236;
+      --border: #25334d;
+      --text: #e6edf7;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --accent-2: #a855f7;
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --err: #f87171;
+      --radius: 12px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: radial-gradient(circle at top left, rgba(168,85,247,0.10), transparent 40%),
+                  radial-gradient(circle at top right, rgba(34,211,238,0.08), transparent 40%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: rgba(7,11,20,0.88);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+    .pill {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(52,211,153,0.14);
+      color: var(--ok);
+      border: 1px solid rgba(52,211,153,0.35);
+      font-weight: 600;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      max-width: 1120px;
+      width: 100%;
+      margin: 22px auto 0;
+      padding: 0 20px;
+    }
+    .tab-btn {
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(168,85,247,0.18));
+      border-color: var(--accent);
+      color: #fff;
+    }
+    main {
+      max-width: 1120px;
+      width: 100%;
+      margin: 18px auto 32px;
+      padding: 0 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .panel {
+      display: none;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+    }
+    .panel.active { display: block; }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .sub { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+    label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+    input, select {
+      width: 100%;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .stat {
+      background: rgba(0,0,0,0.28);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .stat .k { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .stat .v { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .err { color: var(--err); }
+    .tip-bar {
+      background: linear-gradient(135deg, rgba(34,211,238,0.08), rgba(168,85,247,0.10));
+      border: 1px solid rgba(34,211,238,0.3);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      align-items: center;
+    }
+    .addr {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      word-break: break-all;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .addr:hover { border-color: var(--accent); }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      font-size: 12.5px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>🧮 ChainCalc Zero</span>
+      <span class="pill">No Wallet Connect · 100% Local Math</span>
+    </div>
+    <div style="font-size:13px;color:var(--muted)">
+      Sister Tool: <a href="https://devbox-zero-ops.github.io/devbox-zero/" target="_blank" rel="noopener">⚡ DevBox Zero (Dev Toolkit)</a>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="il">Impermanent Loss (V2/V3)</button>
+    <button class="tab-btn" data-tab="apy">APR ↔ APY &amp; Gas Compounding</button>
+    <button class="tab-btn" data-tab="risk">Position Size &amp; Risk (R:R)</button>
+  </div>
+
+  <main>
+    <!-- Impermanent Loss -->
+    <section class="panel active" id="tab-il">
+      <h1>Impermanent Loss &amp; LP Break-Even Calculator</h1>
+      <p class="sub">Simulate 50/50 AMM (Uniswap V2) vs. concentrated liquidity multiplier (V3) and see how many days of fees are needed to beat HODL.</p>
+      <div class="grid">
+        <div>
+          <label>Initial Deposit (USD)</label>
+          <input type="number" id="il-dep" value="10000" min="1" step="100" oninput="calcIL()" />
+        </div>
+        <div>
+          <label>Token A Price Change (%)</label>
+          <input type="number" id="il-pa" value="50" step="5" oninput="calcIL()" />
+        </div>
+        <div>
+          <label>Token B Price Change (%)</label>
+          <input type="number" id="il-pb" value="0" step="5" oninput="calcIL()" />
+        </div>
+        <div>
+          <label>Pool Fee APR (%)</label>
+          <input type="number" id="il-apr" value="25" min="0" step="1" oninput="calcIL()" />
+        </div>
+        <div>
+          <label>V3 Concentration Multiplier (1x = V2)</label>
+          <input type="number" id="il-mult" value="1" min="1" max="20" step="0.5" oninput="calcIL()" />
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">HODL Value</div><div class="v" id="il-hodl">$0</div></div>
+        <div class="stat"><div class="k">LP Value (before fees)</div><div class="v" id="il-lp">$0</div></div>
+        <div class="stat"><div class="k">Impermanent Loss (%)</div><div class="v err" id="il-pct">0%</div></div>
+        <div class="stat"><div class="k">IL in USD</div><div class="v err" id="il-usd">$0</div></div>
+        <div class="stat"><div class="k">Est. Break-Even Days</div><div class="v warn" id="il-days">0 d</div></div>
+      </div>
+    </section>
+
+    <!-- APR/APY -->
+    <section class="panel" id="tab-apy">
+      <h1>DeFi APR to APY &amp; Gas-Adjusted Compounding</h1>
+      <p class="sub">Calculate true net APY after harvest/compound gas fees and find the optimal compounding cadence for your stake size.</p>
+      <div class="grid">
+        <div>
+          <label>Principal (USD)</label>
+          <input type="number" id="apy-p" value="5000" min="1" step="100" oninput="calcAPY()" />
+        </div>
+        <div>
+          <label>Base APR (%)</label>
+          <input type="number" id="apy-apr" value="18" min="0" step="0.5" oninput="calcAPY()" />
+        </div>
+        <div>
+          <label>Gas Cost per Compound (USD)</label>
+          <input type="number" id="apy-gas" value="0.25" min="0" step="0.05" oninput="calcAPY()" />
+        </div>
+        <div>
+          <label>Compounds per Year</label>
+          <select id="apy-freq" onchange="calcAPY()">
+            <option value="365">Daily (365x)</option>
+            <option value="52" selected>Weekly (52x)</option>
+            <option value="12">Monthly (12x)</option>
+            <option value="4">Quarterly (4x)</option>
+            <option value="1">Yearly (1x)</option>
+          </select>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Gross APY</div><div class="v ok" id="apy-gross">0%</div></div>
+        <div class="stat"><div class="k">Annual Gas Spent</div><div class="v warn" id="apy-gastotal">$0</div></div>
+        <div class="stat"><div class="k">Net Profit (1 Yr)</div><div class="v ok" id="apy-net">$0</div></div>
+        <div class="stat"><div class="k">True Net APY</div><div class="v" id="apy-netpct">0%</div></div>
+        <div class="stat"><div class="k">Optimal Frequency</div><div class="v ok" id="apy-best">-</div></div>
+      </div>
+    </section>
+
+    <!-- Position Risk -->
+    <section class="panel" id="tab-risk">
+      <h1>Crypto Position Sizing &amp; Risk-Reward Calculator</h1>
+      <p class="sub">Size spot or perp entries strictly by account risk percentage so no single stop-out blows up your stack.</p>
+      <div class="grid">
+        <div>
+          <label>Account Equity (USD)</label>
+          <input type="number" id="rk-eq" value="10000" min="1" step="100" oninput="calcRisk()" />
+        </div>
+        <div>
+          <label>Max Risk per Trade (%)</label>
+          <input type="number" id="rk-pct" value="1.5" min="0.1" max="50" step="0.1" oninput="calcRisk()" />
+        </div>
+        <div>
+          <label>Entry Price ($)</label>
+          <input type="number" id="rk-entry" value="150" min="0.0001" step="1" oninput="calcRisk()" />
+        </div>
+        <div>
+          <label>Stop-Loss Price ($)</label>
+          <input type="number" id="rk-sl" value="142" min="0.0001" step="1" oninput="calcRisk()" />
+        </div>
+        <div>
+          <label>Take-Profit Price ($)</label>
+          <input type="number" id="rk-tp" value="174" min="0.0001" step="1" oninput="calcRisk()" />
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Max Dollar Risk</div><div class="v err" id="rk-loss">$0</div></div>
+        <div class="stat"><div class="k">Position Size (Units)</div><div class="v" id="rk-units">0</div></div>
+        <div class="stat"><div class="k">Notional Value</div><div class="v" id="rk-notional">$0</div></div>
+        <div class="stat"><div class="k">Target Profit</div><div class="v ok" id="rk-gain">$0</div></div>
+        <div class="stat"><div class="k">Risk : Reward</div><div class="v ok" id="rk-rr">1 : 0</div></div>
+      </div>
+    </section>
+
+    <div class="tip-bar">
+      <div>
+        <strong style="font-size:15px">💎 Saved you from a bad LP or liquidation?</strong>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">
+          ChainCalc Zero is 100% free, open, and never asks for wallet approvals. Support independent tooling with a USDC tip (click to copy):
+        </div>
+      </div>
+      <div>
+        <div class="addr" onclick="copyAddr('0xe4c8739bCC488bD98978CE976511735e0499d432', this)">
+          Base / EVM USDC: 0xe4c8739bCC488bD98978CE976511735e0499d432
+        </div>
+        <div class="addr" onclick="copyAddr('89XqpaJDKajhYFs4Vmex853yxoEU7HqwnMAPtTDpgZgG', this)">
+          Solana USDC/SOL: 89XqpaJDKajhYFs4Vmex853yxoEU7HqwnMAPtTDpgZgG
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>ChainCalc Zero · Client-Side DeFi Math Suite</span>
+    <span>Disclaimer: Educational math tools only, not financial advice.</span>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    function copyAddr(addr, el) {
+      navigator.clipboard.writeText(addr);
+      const old = el.textContent;
+      el.textContent = 'Copied: ' + addr;
+      setTimeout(() => { el.textContent = old; }, 1400);
+    }
+
+    const fmtUsd = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    function calcIL() {
+      const dep = Math.max(0, +document.getElementById('il-dep').value || 0);
+      const rA = Math.max(0.0001, 1 + (+document.getElementById('il-pa').value || 0) / 100);
+      const rB = Math.max(0.0001, 1 + (+document.getElementById('il-pb').value || 0) / 100);
+      const apr = Math.max(0, (+document.getElementById('il-apr').value || 0) / 100);
+      const mult = Math.max(1, +document.getElementById('il-mult').value || 1);
+
+      const hodl = dep * 0.5 * (rA + rB);
+      const k = rA / rB;
+      const v2IL = (2 * Math.sqrt(k)) / (1 + k) - 1; // negative
+      const effIL = Math.max(-0.999, v2IL * mult);
+      const lp = hodl * (1 + effIL);
+      const ilUsd = lp - hodl;
+      const dailyFees = dep * (apr / 365);
+      const days = dailyFees > 0 ? Math.abs(ilUsd) / dailyFees : Infinity;
+
+      document.getElementById('il-hodl').textContent = fmtUsd(hodl);
+      document.getElementById('il-lp').textContent = fmtUsd(lp);
+      document.getElementById('il-pct').textContent = (effIL * 100).toFixed(2) + '%';
+      document.getElementById('il-usd').textContent = fmtUsd(ilUsd);
+      document.getElementById('il-days').textContent = Number.isFinite(days) ? days.toFixed(1) + ' d' : '∞';
+    }
+
+    function netProfitFor(P, apr, gas, n) {
+      let bal = P;
+      for (let i = 0; i < n; i++) {
+        bal = bal * (1 + apr / n) - gas;
+      }
+      return bal - P;
+    }
+
+    function calcAPY() {
+      const P = Math.max(0, +document.getElementById('apy-p').value || 0);
+      const apr = Math.max(0, (+document.getElementById('apy-apr').value || 0) / 100);
+      const gas = Math.max(0, +document.getElementById('apy-gas').value || 0);
+      const n = Math.max(1, +document.getElementById('apy-freq').value || 52);
+
+      const grossApy = Math.pow(1 + apr / n, n) - 1;
+      const net = netProfitFor(P, apr, gas, n);
+      const netPct = P > 0 ? (net / P) * 100 : 0;
+
+      const candidates = [
+        { label: 'Daily (365x)', n: 365 },
+        { label: 'Weekly (52x)', n: 52 },
+        { label: 'Monthly (12x)', n: 12 },
+        { label: 'Quarterly (4x)', n: 4 },
+        { label: 'Yearly (1x)', n: 1 }
+      ];
+      let best = candidates[0];
+      let bestVal = -Infinity;
+      for (const c of candidates) {
+        const v = netProfitFor(P, apr, gas, c.n);
+        if (v > bestVal) { bestVal = v; best = c; }
+      }
+
+      document.getElementById('apy-gross').textContent = (grossApy * 100).toFixed(2) + '%';
+      document.getElementById('apy-gastotal').textContent = fmtUsd(gas * n);
+      document.getElementById('apy-net').textContent = fmtUsd(net);
+      document.getElementById('apy-netpct').textContent = netPct.toFixed(2) + '%';
+      document.getElementById('apy-best').textContent = best.label;
+    }
+
+    function calcRisk() {
+      const eq = Math.max(0, +document.getElementById('rk-eq').value || 0);
+      const pct = Math.max(0, (+document.getElementById('rk-pct').value || 0) / 100);
+      const entry = +document.getElementById('rk-entry').value || 0;
+      const sl = +document.getElementById('rk-sl').value || 0;
+      const tp = +document.getElementById('rk-tp').value || 0;
+
+      const maxLoss = eq * pct;
+      const riskPerUnit = Math.abs(entry - sl);
+      const rewardPerUnit = Math.abs(tp - entry);
+      const units = riskPerUnit > 0 ? maxLoss / riskPerUnit : 0;
+      const notional = units * entry;
+      const gain = units * rewardPerUnit;
+      const rr = riskPerUnit > 0 ? rewardPerUnit / riskPerUnit : 0;
+
+      document.getElementById('rk-loss').textContent = '-' + fmtUsd(maxLoss);
+      document.getElementById('rk-units').textContent = units.toFixed(4);
+      document.getElementById('rk-notional').textContent = fmtUsd(notional);
+      document.getElementById('rk-gain').textContent = '+' + fmtUsd(gain);
+      document.getElementById('rk-rr').textContent = '1 : ' + rr.toFixed(2);
+    }
+
+    calcIL(); calcAPY(); calcRisk();
+  </script>
+</body>
+</html>
