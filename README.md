@@ -8,6 +8,6 @@
 
 Live: https://devbox-zero-ops.github.io/chaincalc-zero/
 
-## Support Independent Open Tooling (USDC)
-- **Base / EVM USDC**: `0xe4c8739bCC488bD98978CE976511735e0499d432`
-- **Solana USDC/SOL**: `89XqpaJDKajhYFs4Vmex853yxoEU7HqwnMAPtTDpgZgG`
+## Support Independent Open Tooling (USDT)
+- **Base / EVM USDT**: `0xe4c8739bCC488bD98978CE976511735e0499d432`
+- **Solana USDT/SOL**: `89XqpaJDKajhYFs4Vmex853yxoEU7HqwnMAPtTDpgZgG`
